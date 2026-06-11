@@ -1,3 +1,5 @@
+import ApiStatusCard from "./components/ApiStatusCard";
+
 const features = [
   {
     title: "Thesis Monitoring",
@@ -45,6 +47,8 @@ export default function Home() {
           is still supported by fresh evidence from SEC filings, earnings calls,
           financial metrics, and news.
         </p>
+
+        <ApiStatusCard />
 
         {/* Feature cards */}
         <div className="mt-16 grid w-full max-w-4xl gap-4 sm:grid-cols-3">
