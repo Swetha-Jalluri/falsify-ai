@@ -2,7 +2,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from routes.companies import router as companies_router
 from routes.health import router as health_router
+from routes.theses import router as theses_router
 
 load_dotenv()
 
@@ -20,3 +22,5 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(companies_router)
+app.include_router(theses_router)
