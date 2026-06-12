@@ -1,4 +1,6 @@
 import ApiStatusCard from "./components/ApiStatusCard";
+import CompanyWatchlist from "./components/CompanyWatchlist";
+import InvestmentTheses from "./components/InvestmentTheses";
 
 const features = [
   {
@@ -66,6 +68,29 @@ export default function Home() {
               </p>
             </div>
           ))}
+        </div>
+
+
+        {/* Demo workflow */}
+        <div className="mt-24 w-full max-w-2xl">
+          <div className="mb-2 flex items-center gap-3">
+            <h2 className="text-xl font-bold text-white">Try the Demo</h2>
+            <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-0.5 text-xs font-medium text-blue-400">
+              Live API
+            </span>
+          </div>
+          <p className="mb-1 text-sm text-slate-400">
+            Add companies and investment theses — these are stored in the
+            backend and returned via the real API.
+          </p>
+          <p className="mb-8 text-xs text-slate-600">
+            Demo data resets when the backend restarts.
+          </p>
+
+          <div className="flex flex-col gap-6">
+            <CompanyWatchlist />
+            <InvestmentTheses />
+          </div>
         </div>
       </main>
 
