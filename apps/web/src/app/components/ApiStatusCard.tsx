@@ -22,7 +22,7 @@ export default function ApiStatusCard() {
   }, []);
 
   return (
-    <div className="mt-10 w-full max-w-sm rounded-xl border border-slate-700/60 bg-slate-800/40 p-5 text-left backdrop-blur-sm">
+    <div className="mt-10 w-full max-w-md rounded-xl border border-slate-700/60 bg-slate-800/40 p-6 text-left backdrop-blur-sm">
       <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
         API Status
       </p>

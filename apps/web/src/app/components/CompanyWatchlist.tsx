@@ -40,7 +40,7 @@ export default function CompanyWatchlist() {
   }
 
   return (
-    <div className="w-full max-w-2xl rounded-xl border border-slate-700/60 bg-slate-800/40 p-6 backdrop-blur-sm">
+    <div className="w-full rounded-xl border border-slate-700/60 bg-slate-800/40 p-6 backdrop-blur-sm">
       <h2 className="mb-1 text-base font-semibold text-white">
         Company Watchlist
       </h2>
@@ -48,38 +48,47 @@ export default function CompanyWatchlist() {
         Track companies whose investment theses you want to monitor.
       </p>
 
-      <form onSubmit={handleSubmit} className="mb-6 flex flex-col gap-3">
-        <div className="grid grid-cols-3 gap-3">
-          <input
-            required
-            placeholder="Ticker (e.g. AAPL)"
-            value={form.ticker}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, ticker: e.target.value.toUpperCase() }))
-            }
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none"
-          />
-          <input
-            required
-            placeholder="Company name"
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none"
-          />
-          <input
-            required
-            placeholder="Sector"
-            value={form.sector}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, sector: e.target.value }))
-            }
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none"
-          />
+      <form onSubmit={handleSubmit} className="mb-6 flex flex-col gap-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-400">Ticker</label>
+            <input
+              required
+              placeholder="e.g. AAPL"
+              value={form.ticker}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, ticker: e.target.value.toUpperCase() }))
+              }
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-400">Company Name</label>
+            <input
+              required
+              placeholder="e.g. Apple Inc."
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-400">Sector</label>
+            <input
+              required
+              placeholder="e.g. Technology"
+              value={form.sector}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, sector: e.target.value }))
+              }
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
         </div>
         <button
           type="submit"
           disabled={submitting}
-          className="self-start rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+          className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 sm:w-auto sm:self-start"
         >
           {submitting ? "Adding…" : "Add Company"}
         </button>
