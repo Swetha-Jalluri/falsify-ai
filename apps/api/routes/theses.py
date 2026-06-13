@@ -1,26 +1,35 @@
-import uuid
+from fastapi import APIRouter, HTTPException
 
-from fastapi import APIRouter
-
+from db.supabase_client import get_supabase
 from schemas.thesis import ThesisCreate, ThesisResponse
 
 router = APIRouter(prefix="/theses", tags=["theses"])
 
-_theses: list[dict] = []
-
 
 @router.get("", response_model=list[ThesisResponse])
 def list_theses() -> list[dict]:
-    return _theses
+    try:
+        result = get_supabase().table("theses").select("*").execute()
+        return result.data
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("", response_model=ThesisResponse, status_code=201)
 def create_thesis(body: ThesisCreate) -> dict:
-    thesis = {
-        "id": str(uuid.uuid4()),
-        "company_ticker": body.company_ticker,
-        "thesis_text": body.thesis_text,
-        "status": "active",
-    }
-    _theses.append(thesis)
-    return thesis
+    try:
+        result = (
+            get_supabase()
+            .table("theses")
+            .insert(
+                {
+                    "company_ticker": body.company_ticker,
+                    "thesis_text": body.thesis_text,
+                    "status": "active",
+                }
+            )
+            .execute()
+        )
+        return result.data[0]
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
