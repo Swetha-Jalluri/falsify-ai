@@ -153,3 +153,11 @@ export async function createDriftVerdict(body: DriftVerdictRequest): Promise<Dri
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<DriftVerdict>;
 }
+
+export async function generateDriftVerdict(thesisId: string): Promise<DriftVerdict> {
+  const res = await fetch(`${BASE}/analyze/thesis/${thesisId}`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<DriftVerdict>;
+}
