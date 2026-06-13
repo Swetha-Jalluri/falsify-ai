@@ -159,6 +159,32 @@ Never commit real credentials. Both files are gitignored.
 
 ---
 
+## Screenshots
+
+> Screenshots are not yet committed. Add the files listed below to `docs/screenshots/` manually, then these images will render on GitHub.
+
+### Dashboard Overview
+
+![Dashboard Overview](docs/screenshots/dashboard-hero.png)
+
+### Company and Thesis Workflow
+
+![Company and Thesis Workflow](docs/screenshots/company-thesis-workflow.png)
+
+### Evidence Panel
+
+![Evidence Panel](docs/screenshots/evidence-panel.png)
+
+### Drift Verdict and Generate Verdict
+
+![Drift Verdict and Generate Verdict](docs/screenshots/drift-verdict-panel.png)
+
+### Supabase Database Tables
+
+![Supabase Database Tables](docs/screenshots/supabase-tables.png)
+
+---
+
 ## Roadmap
 
 - [ ] **LLM-based analyzer** — replace rule-based verdict logic with LangGraph agent + Claude
