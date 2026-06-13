@@ -1,81 +1,177 @@
 # Falsify
 
-## Agentic AI Platform for Investment Thesis Drift Detection
+**Agentic AI platform for investment thesis drift detection.**
 
-Falsify is a production-style fintech AI platform that monitors whether an investor's original investment thesis for a public company is still supported by fresh evidence.
+> Portfolio project — not financial advice. See [Disclaimer](#disclaimer).
 
-The system ingests SEC filings, earnings call transcripts, financial metrics, and news, then uses agentic AI to detect thesis drift and generate structured verdicts with supporting citations.
+---
 
 ## Problem
 
-Investors often buy a stock based on a thesis, such as:
+Investors buy a stock based on a thesis:
 
 > "I believe Nvidia will continue growing because AI data center demand remains strong, margins stay high, and hyperscaler spending continues."
 
-But after investing, they may not continuously monitor whether that thesis is still valid.
+After investing, they rarely revisit that thesis systematically. Evidence accumulates — earnings calls, SEC filings, news — but nothing tells them whether their original reasoning still holds.
 
-Falsify solves this by tracking new public evidence and identifying whether the thesis is:
+**Falsify tracks that evidence and tells you when a thesis is drifting.**
 
-- Intact
-- Weakening
-- Broken
-- Insufficiently supported
+---
 
-## Core Features
+## What Falsify Does
 
-- Public company watchlist
-- Plain-English investment thesis input
-- AI-generated thesis pillars
-- SEC filing and financial metric ingestion
-- Evidence retrieval using hybrid search
-- Agentic drift reasoning workflow
-- Citation-backed verdicts
-- Trust and evaluation dashboard
-- Agent tracing and observability
+1. You add a company to your watchlist and write a plain-English investment thesis.
+2. You (or a future automated pipeline) attach evidence items — each tagged as `supports`, `contradicts`, or `neutral`.
+3. Falsify runs a rule-based analyzer over that evidence and produces a structured **drift verdict**: `supported`, `contradicted`, `weakening`, or `needs_more_evidence`.
+4. The verdict dashboard shows confidence, rationale, and history over time.
 
-## Planned Tech Stack
+The current MVP uses a rule-based analyzer. The planned AI layer will replace it with LLM-grounded reasoning and automated evidence ingestion.
 
-### Frontend
-- Next.js
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- TanStack Query
-- Recharts
+---
 
-### Backend
-- FastAPI
-- Pydantic v2
-- Python 3.11
+## Architecture
 
-### AI and Agents
-- LangGraph
-- LangSmith
-- Configurable LLM provider: Gemini and Claude
+```
+User
+ ↓
+Next.js Frontend
+ ↓
+FastAPI Backend
+ ↓
+Supabase Postgres
+ ↓
+Evidence + Rule-Based Analyzer
+ ↓
+Drift Verdict Dashboard
+```
 
-### Data and Retrieval
-- Supabase Postgres
-- Qdrant hybrid search
-- SEC EDGAR data
-- Financial metrics
-- News signals
+---
 
-### Evaluation and Monitoring
-- Evidently
-- Custom citation checks
-- Hallucination risk checks
-- Source freshness checks
+## Current MVP Features
 
-### Automation and Deployment
-- GitHub Actions
-- Vercel
-- Render or similar free backend deployment
-- Supabase free tier
+- **Company Watchlist** — add and track public companies by ticker
+- **Investment Thesis Entry** — write a plain-English thesis for any company
+- **Manual Evidence Entry** — attach evidence with a stance (`supports` / `contradicts` / `neutral`)
+- **Rule-Based Drift Analyzer** — counts evidence stances and computes a verdict with rationale
+- **Drift Verdict Dashboard** — view current verdict, confidence score, and rationale per thesis
+- **REST API** — full CRUD for companies, theses, evidence, and verdicts
 
-## Project Status
+---
 
-Currently in early development.
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js, TypeScript, Tailwind CSS |
+| Backend | FastAPI, Pydantic v2, Python 3.11 |
+| Database | Supabase Postgres |
+| API style | REST |
+
+---
+
+## Database Tables
+
+| Table | Purpose |
+|---|---|
+| `companies` | Tracked companies (ticker, name) |
+| `theses` | Investment theses linked to a company |
+| `evidence` | Evidence items linked to a thesis, each with a `stance` |
+| `drift_verdicts` | Analyzer output: verdict, confidence, rationale, timestamp |
+
+---
+
+## Backend API Routes
+
+| Method | Route | Description |
+|---|---|---|
+| `GET` | `/health` | Health check |
+| `GET` | `/companies` | List all companies |
+| `POST` | `/companies` | Add a company |
+| `GET` | `/theses` | List all theses |
+| `POST` | `/theses` | Create a thesis |
+| `GET` | `/evidence` | List all evidence |
+| `GET` | `/evidence/thesis/{thesis_id}` | Evidence for a thesis |
+| `POST` | `/evidence` | Add an evidence item |
+| `GET` | `/drift-verdicts` | List all verdicts |
+| `GET` | `/drift-verdicts/thesis/{thesis_id}` | Verdicts for a thesis |
+| `POST` | `/drift-verdicts` | Create a verdict manually |
+| `POST` | `/analyze/thesis/{thesis_id}` | Run the rule-based analyzer |
+
+---
+
+## How to Run Locally
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- A [Supabase](https://supabase.com) project (free tier works)
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/your-username/falsify-ai.git
+cd falsify-ai
+```
+
+### 2. Backend
+
+```bash
+cd apps/api
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env            # fill in your Supabase credentials
+uvicorn main:app --reload
+```
+
+API runs at `http://localhost:8000`. Swagger docs at `http://localhost:8000/docs`.
+
+### 3. Frontend
+
+```bash
+cd apps/web
+npm install
+cp .env.local.example .env.local   # fill in NEXT_PUBLIC_API_URL
+npm run dev
+```
+
+Frontend runs at `http://localhost:3000`.
+
+---
+
+## Environment Variables
+
+### Backend (`apps/api/.env`)
+
+```
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
+### Frontend (`apps/web/.env.local`)
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+Never commit real credentials. Both files are gitignored.
+
+---
+
+## Roadmap
+
+- [ ] **LLM-based analyzer** — replace rule-based verdict logic with LangGraph agent + Claude
+- [ ] **Automated evidence ingestion** — pull from SEC EDGAR filings, earnings call transcripts, financial news
+- [ ] **Financial metrics pipeline** — revenue growth, margins, guidance deltas
+- [ ] **Citation-grounded verdicts** — each verdict links back to source documents
+- [ ] **Thesis pillar decomposition** — break a thesis into sub-claims and evaluate each separately
+- [ ] **Verdict history timeline** — track how a thesis verdict changes over time
+- [ ] **Agent observability** — trace and evaluate LLM reasoning steps (LangSmith)
+- [ ] **Hallucination detection** — automated checks on LLM-generated rationale
+
+---
 
 ## Disclaimer
 
-This project is for educational and portfolio purposes only. It does not provide financial advice, investment recommendations, or buy/sell signals.
+This is a portfolio and learning project. It does not provide financial advice, investment recommendations, or buy/sell signals. Nothing in this codebase should be interpreted as guidance on any real investment decision.
