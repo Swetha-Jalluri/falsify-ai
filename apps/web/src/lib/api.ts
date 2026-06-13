@@ -69,3 +69,47 @@ export async function createThesis(body: ThesisRequest): Promise<Thesis> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<Thesis>;
 }
+
+export type Evidence = {
+  id: string;
+  thesis_id: string;
+  company_ticker: string;
+  source_type: string;
+  source_title: string;
+  source_url: string;
+  evidence_text: string;
+  stance: string;
+  created_at: string;
+};
+
+export type EvidenceRequest = {
+  thesis_id: string;
+  company_ticker: string;
+  source_type: string;
+  source_title: string;
+  source_url: string;
+  evidence_text: string;
+  stance: string;
+};
+
+export async function fetchEvidence(): Promise<Evidence[]> {
+  const res = await fetch(`${BASE}/evidence`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<Evidence[]>;
+}
+
+export async function fetchEvidenceByThesis(thesisId: string): Promise<Evidence[]> {
+  const res = await fetch(`${BASE}/evidence/thesis/${thesisId}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<Evidence[]>;
+}
+
+export async function createEvidence(body: EvidenceRequest): Promise<Evidence> {
+  const res = await fetch(`${BASE}/evidence`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<Evidence>;
+}

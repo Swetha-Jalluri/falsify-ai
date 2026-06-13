@@ -1,5 +1,6 @@
 import ApiStatusCard from "./components/ApiStatusCard";
 import CompanyWatchlist from "./components/CompanyWatchlist";
+import EvidencePanel from "./components/EvidencePanel";
 import InvestmentTheses from "./components/InvestmentTheses";
 
 const features = [
@@ -121,6 +122,14 @@ export default function Home() {
                 Step 2 — Write Investment Theses
               </p>
               <InvestmentTheses />
+            </div>
+
+            {/* Step 3 — Evidence */}
+            <div className="mt-8">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                Step 3 — Log Evidence
+              </p>
+              <EvidencePanel />
             </div>
 
           </div>
