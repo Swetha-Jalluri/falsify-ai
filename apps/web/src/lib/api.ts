@@ -113,3 +113,43 @@ export async function createEvidence(body: EvidenceRequest): Promise<Evidence> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<Evidence>;
 }
+
+export type DriftVerdict = {
+  id: string;
+  thesis_id: string;
+  company_ticker: string;
+  verdict: string;
+  confidence: number;
+  rationale: string;
+  created_at: string;
+};
+
+export type DriftVerdictRequest = {
+  thesis_id: string;
+  company_ticker: string;
+  verdict: string;
+  confidence: number;
+  rationale: string;
+};
+
+export async function fetchDriftVerdicts(): Promise<DriftVerdict[]> {
+  const res = await fetch(`${BASE}/drift-verdicts`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<DriftVerdict[]>;
+}
+
+export async function fetchDriftVerdictsByThesis(thesisId: string): Promise<DriftVerdict[]> {
+  const res = await fetch(`${BASE}/drift-verdicts/thesis/${thesisId}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<DriftVerdict[]>;
+}
+
+export async function createDriftVerdict(body: DriftVerdictRequest): Promise<DriftVerdict> {
+  const res = await fetch(`${BASE}/drift-verdicts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<DriftVerdict>;
+}

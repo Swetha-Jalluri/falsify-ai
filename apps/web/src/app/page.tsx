@@ -1,5 +1,6 @@
 import ApiStatusCard from "./components/ApiStatusCard";
 import CompanyWatchlist from "./components/CompanyWatchlist";
+import DriftVerdictPanel from "./components/DriftVerdictPanel";
 import EvidencePanel from "./components/EvidencePanel";
 import InvestmentTheses from "./components/InvestmentTheses";
 
@@ -130,6 +131,14 @@ export default function Home() {
                 Step 3 — Log Evidence
               </p>
               <EvidencePanel />
+            </div>
+
+            {/* Step 4 — Drift Verdicts */}
+            <div className="mt-8">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                Step 4 — Record Drift Verdict
+              </p>
+              <DriftVerdictPanel />
             </div>
 
           </div>
