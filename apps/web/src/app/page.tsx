@@ -4,24 +4,57 @@ import DriftVerdictPanel from "./components/DriftVerdictPanel";
 import EvidencePanel from "./components/EvidencePanel";
 import InvestmentTheses from "./components/InvestmentTheses";
 
-const features = [
+const WORKFLOW_STEPS = [
   {
-    title: "Thesis Monitoring",
-    description:
-      "Track your original investment thesis over time and receive alerts when key assumptions show signs of deterioration.",
-    icon: "📋",
+    number: "01",
+    title: "Track Company",
+    description: "Add a public company you want to monitor.",
   },
   {
-    title: "Evidence-Backed Verdicts",
-    description:
-      "Every signal is grounded in primary sources — SEC filings, earnings call transcripts, financial metrics, and curated news.",
-    icon: "🔍",
+    number: "02",
+    title: "Define Thesis",
+    description: "Write the original investment thesis to monitor.",
   },
   {
-    title: "Agentic Drift Detection",
+    number: "03",
+    title: "Add Evidence",
+    description: "Log sources that support or contradict the thesis.",
+  },
+  {
+    number: "04",
+    title: "Record Verdict",
+    description: "Assess whether the thesis is holding or drifting.",
+  },
+];
+
+const DEMO_STEPS = [
+  {
+    number: 1,
+    label: "Step 1 — Track Company",
     description:
-      "Autonomous AI agents continuously scan for contradicting evidence and surface material changes before they become obvious.",
-    icon: "⚡",
+      "Start by adding the company whose thesis you want to monitor. Use the ticker, full name, and sector.",
+    component: <CompanyWatchlist />,
+  },
+  {
+    number: 2,
+    label: "Step 2 — Define Investment Thesis",
+    description:
+      "Write the investment thesis in plain language. This is the claim Falsify will track for drift over time.",
+    component: <InvestmentTheses />,
+  },
+  {
+    number: 3,
+    label: "Step 3 — Add Evidence",
+    description:
+      "Log a piece of evidence — a news article, filing, or earnings transcript — that either supports or contradicts the thesis. Copy the thesis ID from the row above.",
+    component: <EvidencePanel />,
+  },
+  {
+    number: 4,
+    label: "Step 4 — Record Drift Verdict",
+    description:
+      "Based on the evidence, record your verdict on whether the thesis is still holding. Future releases will generate this automatically via AI.",
+    component: <DriftVerdictPanel />,
   },
 ];
 
@@ -40,25 +73,30 @@ export default function Home() {
               Thesis Drift Detection
             </span>
           </div>
-          <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-blue-400">
-            Early Preview
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-blue-400">
+              Early Preview
+            </span>
+          </div>
         </div>
       </header>
 
       <main className="flex-1">
 
         {/* ── Hero ── */}
-        <section className="px-6 py-20 text-center">
-          <div className="mx-auto max-w-4xl">
+        <section className="px-6 py-24 text-center">
+          <div className="mx-auto max-w-3xl">
+            <span className="mb-6 inline-block rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-500">
+              Agentic AI · Investment Research
+            </span>
             <h1 className="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Investment Thesis{" "}
-              <span className="text-blue-400">Drift Detection</span>
+              Know when your thesis{" "}
+              <span className="text-blue-400">stops holding</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg">
-              Monitor whether an investor&apos;s original thesis for a public
-              company is still supported by fresh evidence from SEC filings,
-              earnings calls, financial metrics, and news.
+              Falsify monitors investment theses against a continuous stream of
+              evidence — SEC filings, earnings calls, financial metrics, and
+              news — and surfaces drift before it becomes obvious.
             </p>
             <div className="flex justify-center">
               <ApiStatusCard />
@@ -66,25 +104,25 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Feature Cards ── */}
-        <section className="border-t border-slate-800 px-6 py-16">
+        {/* ── Workflow Overview Strip ── */}
+        <section className="border-t border-slate-800 px-6 py-14">
           <div className="mx-auto max-w-5xl">
-            <h2 className="mb-8 text-center text-xs font-semibold uppercase tracking-widest text-slate-500">
+            <p className="mb-10 text-center text-xs font-semibold uppercase tracking-widest text-slate-500">
               How It Works
-            </h2>
-            <div className="grid gap-5 sm:grid-cols-3">
-              {features.map((f) => (
-                <div
-                  key={f.title}
-                  className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-6 backdrop-blur-sm"
-                >
-                  <div className="mb-4 text-3xl">{f.icon}</div>
-                  <h3 className="mb-2 text-sm font-semibold text-white">
-                    {f.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-slate-400">
-                    {f.description}
-                  </p>
+            </p>
+            <div className="grid gap-0 sm:grid-cols-4">
+              {WORKFLOW_STEPS.map((step, i) => (
+                <div key={step.number} className="relative flex flex-col items-center text-center px-4">
+                  {/* Connector line (not on last item) */}
+                  {i < WORKFLOW_STEPS.length - 1 && (
+                    <div className="absolute top-5 left-1/2 hidden h-px w-full bg-slate-700 sm:block" />
+                  )}
+                  {/* Number circle */}
+                  <div className="relative z-10 mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-blue-500/40 bg-blue-500/10 text-sm font-bold text-blue-400">
+                    {step.number}
+                  </div>
+                  <p className="mb-1 text-sm font-semibold text-white">{step.title}</p>
+                  <p className="text-xs leading-relaxed text-slate-500">{step.description}</p>
                 </div>
               ))}
             </div>
@@ -95,50 +133,57 @@ export default function Home() {
         <section className="border-t border-slate-800 px-6 py-16">
           <div className="mx-auto max-w-3xl">
 
-            <div className="mb-2 flex items-center gap-3">
-              <h2 className="text-xl font-bold text-white">Try the Demo</h2>
-              <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-0.5 text-xs font-medium text-blue-400">
-                Live API
-              </span>
-            </div>
-            <p className="text-sm text-slate-400">
-              Add companies and investment theses below — they are stored in
-              the backend and returned via the real API.
-            </p>
-            <p className="mt-1 text-xs text-slate-600">
-              Demo data resets when the backend restarts.
-            </p>
-
-            {/* Step 1 — Companies */}
-            <div className="mt-10">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                Step 1 — Add Companies
+            {/* Section intro */}
+            <div className="mb-12">
+              <div className="mb-2 flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-white">Live Demo</h2>
+                <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-0.5 text-xs font-medium text-blue-400">
+                  Connected to real API
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed text-slate-400">
+                Walk through the full workflow below. Each step builds on the
+                previous one — add a company, write a thesis, log evidence, then
+                record a drift verdict.
               </p>
-              <CompanyWatchlist />
+              <p className="mt-2 text-xs text-slate-600">
+                Data is stored in Supabase and persists across page reloads.
+              </p>
             </div>
 
-            {/* Step 2 — Theses */}
-            <div className="mt-8">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                Step 2 — Write Investment Theses
-              </p>
-              <InvestmentTheses />
-            </div>
+            {/* Steps */}
+            <div className="flex flex-col gap-12">
+              {DEMO_STEPS.map((step) => (
+                <div key={step.number}>
+                  {/* Step header */}
+                  <div className="mb-4 flex items-start gap-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-xs font-bold text-slate-400">
+                      {step.number}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                        {step.label}
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-slate-400">
+                        {step.description}
+                      </p>
+                    </div>
+                  </div>
 
-            {/* Step 3 — Evidence */}
-            <div className="mt-8">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                Step 3 — Log Evidence
-              </p>
-              <EvidencePanel />
-            </div>
+                  {/* Component */}
+                  <div className="ml-12">
+                    {step.component}
+                  </div>
 
-            {/* Step 4 — Drift Verdicts */}
-            <div className="mt-8">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                Step 4 — Record Drift Verdict
-              </p>
-              <DriftVerdictPanel />
+                  {/* Connector to next step */}
+                  {step.number < DEMO_STEPS.length && (
+                    <div className="ml-[15px] mt-6 flex items-center gap-3">
+                      <div className="h-6 w-px bg-slate-700" />
+                      <span className="text-xs text-slate-700">then</span>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
 
           </div>
@@ -147,12 +192,12 @@ export default function Home() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-slate-800 px-6 py-8">
+      <footer className="border-t border-slate-800 px-6 py-10">
         <div className="mx-auto max-w-6xl text-center">
-          <p className="text-xs font-semibold text-slate-400">Falsify</p>
+          <p className="text-sm font-semibold text-slate-400">Falsify</p>
           <p className="mt-1 text-xs text-slate-600">
-            Educational portfolio project only. Not financial advice. Data
-            shown is for demonstration purposes only.
+            Portfolio project — not financial advice. Data shown is for
+            demonstration purposes only.
           </p>
         </div>
       </footer>
