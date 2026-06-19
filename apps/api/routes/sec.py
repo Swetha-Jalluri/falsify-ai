@@ -229,6 +229,23 @@ def get_sec_financial_summary(ticker: str) -> dict:
     }
 
 
+def _existing_sec_titles(db, thesis_id: str) -> set[str]:
+    """
+    Return the set of source_title values already stored for this thesis
+    with source_type 'sec_financial_fact'.
+
+    Used to skip rows that have already been imported.
+    """
+    result = (
+        db.table("evidence")
+        .select("source_title")
+        .eq("thesis_id", thesis_id)
+        .eq("source_type", "sec_financial_fact")
+        .execute()
+    )
+    return {row["source_title"] for row in result.data}
+
+
 @router.post(
     "/company/{ticker}/financial-evidence/{thesis_id}",
     response_model=SECFinancialEvidenceResponse,
@@ -285,7 +302,15 @@ def create_financial_evidence(ticker: str, thesis_id: str) -> dict:
 
     sec_source_url = SEC_FACTS_URL.format(cik=company["cik"])
 
+    # Fetch titles already stored so we can skip duplicates
+    try:
+        existing_titles = _existing_sec_titles(db, thesis_id)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
     rows_to_insert = []
+    skipped = 0
+
     for fact in financial_facts:
         label = fact["label"]
         latest = fact["latest"]
@@ -295,6 +320,11 @@ def create_financial_evidence(ticker: str, thesis_id: str) -> dict:
         filed = latest["filed"]
 
         source_title = f"{company['company_name']} {label} FY{fy}"
+
+        if source_title in existing_titles:
+            skipped += 1
+            continue
+
         evidence_text = (
             f"{company['company_name']} reported {label} of {value:,.0f} USD "
             f"for FY{fy} in its {form} filed on {filed}."
@@ -310,6 +340,15 @@ def create_financial_evidence(ticker: str, thesis_id: str) -> dict:
             "stance": "neutral",
         })
 
+    if not rows_to_insert:
+        return {
+            "ticker": company["ticker"],
+            "thesis_id": thesis_id,
+            "created_evidence_count": 0,
+            "skipped_duplicate_count": skipped,
+            "created_evidence": [],
+        }
+
     try:
         insert_result = db.table("evidence").insert(rows_to_insert).execute()
     except RuntimeError as exc:
@@ -319,5 +358,6 @@ def create_financial_evidence(ticker: str, thesis_id: str) -> dict:
         "ticker": company["ticker"],
         "thesis_id": thesis_id,
         "created_evidence_count": len(insert_result.data),
+        "skipped_duplicate_count": skipped,
         "created_evidence": insert_result.data,
     }

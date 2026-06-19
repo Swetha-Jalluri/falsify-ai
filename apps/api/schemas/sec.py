@@ -38,4 +38,5 @@ class SECFinancialEvidenceResponse(BaseModel):
     ticker: str
     thesis_id: str
     created_evidence_count: int
+    skipped_duplicate_count: int
     created_evidence: list[dict]
