@@ -7,6 +7,7 @@ from routes.companies import router as companies_router
 from routes.drift_verdicts import router as drift_verdicts_router
 from routes.evidence import router as evidence_router
 from routes.health import router as health_router
+from routes.sec import router as sec_router
 from routes.theses import router as theses_router
 
 load_dotenv()
@@ -30,3 +31,4 @@ app.include_router(theses_router)
 app.include_router(evidence_router)
 app.include_router(drift_verdicts_router)
 app.include_router(analyzer_router)
+app.include_router(sec_router)
