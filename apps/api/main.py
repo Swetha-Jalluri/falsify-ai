@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from routes.analyzer import router as analyzer_router
 from routes.companies import router as companies_router
+from routes.demo import router as demo_router
 from routes.drift_verdicts import router as drift_verdicts_router
 from routes.evidence import router as evidence_router
 from routes.health import router as health_router
@@ -32,3 +33,4 @@ app.include_router(evidence_router)
 app.include_router(drift_verdicts_router)
 app.include_router(analyzer_router)
 app.include_router(sec_router)
+app.include_router(demo_router)
