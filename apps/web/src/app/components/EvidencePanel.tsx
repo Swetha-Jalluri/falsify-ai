@@ -31,11 +31,20 @@ export default function EvidencePanel() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadEvidence() {
     fetchEvidence()
       .then(setEvidence)
       .catch(() => setError("Could not load evidence."))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadEvidence();
+
+    // Refresh when InvestmentTheses imports SEC evidence
+    window.addEventListener("sec-evidence-imported", loadEvidence);
+    return () => window.removeEventListener("sec-evidence-imported", loadEvidence);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function set(field: keyof EvidenceRequest, value: string) {

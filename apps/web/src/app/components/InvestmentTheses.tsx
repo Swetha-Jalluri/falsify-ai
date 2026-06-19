@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   fetchTheses,
   createThesis,
+  importSecFinancialEvidence,
   type Thesis,
   type ThesisRequest,
 } from "@/lib/api";
@@ -22,6 +23,10 @@ export default function InvestmentTheses() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Per-thesis SEC import state: thesis id → message string, or null while importing
+  const [importingId, setImportingId] = useState<string | null>(null);
+  const [importMessages, setImportMessages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchTheses()
@@ -42,6 +47,28 @@ export default function InvestmentTheses() {
       setError("Failed to add thesis.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleImportSec(thesis: Thesis) {
+    setImportingId(thesis.id);
+    setImportMessages((prev) => ({ ...prev, [thesis.id]: "" }));
+    try {
+      const result = await importSecFinancialEvidence(
+        thesis.company_ticker,
+        thesis.id,
+      );
+      const msg = `Imported ${result.created_evidence_count} SEC financial evidence row${result.created_evidence_count === 1 ? "" : "s"}.`;
+      setImportMessages((prev) => ({ ...prev, [thesis.id]: msg }));
+      // Notify EvidencePanel to refresh its list
+      window.dispatchEvent(new CustomEvent("sec-evidence-imported"));
+    } catch {
+      setImportMessages((prev) => ({
+        ...prev,
+        [thesis.id]: "Import failed. Check the ticker and try again.",
+      }));
+    } finally {
+      setImportingId(null);
     }
   }
 
@@ -117,6 +144,28 @@ export default function InvestmentTheses() {
               <p className="text-sm leading-relaxed text-slate-300">
                 {t.thesis_text}
               </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => handleImportSec(t)}
+                  disabled={importingId === t.id}
+                  className="rounded-lg border border-slate-600 bg-slate-700/50 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-300 disabled:opacity-50"
+                >
+                  {importingId === t.id
+                    ? "Importing…"
+                    : "Import SEC Financial Evidence"}
+                </button>
+                {importMessages[t.id] && (
+                  <span
+                    className={`text-xs ${
+                      importMessages[t.id].startsWith("Import failed")
+                        ? "text-red-400"
+                        : "text-emerald-400"
+                    }`}
+                  >
+                    {importMessages[t.id]}
+                  </span>
+                )}
+              </div>
             </li>
           ))}
         </ul>

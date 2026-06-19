@@ -161,3 +161,22 @@ export async function generateDriftVerdict(thesisId: string): Promise<DriftVerdi
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<DriftVerdict>;
 }
+
+export type SecFinancialEvidenceResult = {
+  ticker: string;
+  thesis_id: string;
+  created_evidence_count: number;
+  created_evidence: Evidence[];
+};
+
+export async function importSecFinancialEvidence(
+  ticker: string,
+  thesisId: string,
+): Promise<SecFinancialEvidenceResult> {
+  const res = await fetch(
+    `${BASE}/sec/company/${ticker}/financial-evidence/${thesisId}`,
+    { method: "POST" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<SecFinancialEvidenceResult>;
+}
