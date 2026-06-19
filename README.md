@@ -52,9 +52,12 @@ Drift Verdict Dashboard
 - **Company Watchlist** — add and track public companies by ticker
 - **Investment Thesis Entry** — write a plain-English thesis for any company
 - **Manual Evidence Entry** — attach evidence with a stance (`supports` / `contradicts` / `neutral`)
-- **Rule-Based Drift Analyzer** — counts evidence stances and computes a verdict with rationale
-- **Drift Verdict Dashboard** — view current verdict, confidence score, and rationale per thesis
-- **REST API** — full CRUD for companies, theses, evidence, and verdicts
+- **SEC Financial Evidence Import** — fetch official financial facts from SEC EDGAR and store them as structured evidence rows; duplicate prevention on repeat imports
+- **Rule-Based Drift Analyzer** — counts evidence stances, surfaces SEC fact counts separately, and computes a verdict with explainable rationale
+- **Drift Verdict Dashboard** — view current verdict, confidence score, and sentence-by-sentence reasoning per thesis
+- **REST API** — full CRUD for companies, theses, evidence, and verdicts, plus SEC lookup and demo endpoints
+
+Falsify is not just a finance chatbot. It tracks whether an investment thesis is **supported**, **weakening**, **contradicted**, or **needs more evidence** based on structured evidence — starting with real SEC filings.
 
 ---
 
@@ -96,6 +99,79 @@ Drift Verdict Dashboard
 | `GET` | `/drift-verdicts/thesis/{thesis_id}` | Verdicts for a thesis |
 | `POST` | `/drift-verdicts` | Create a verdict manually |
 | `POST` | `/analyze/thesis/{thesis_id}` | Run the rule-based analyzer |
+| `GET` | `/sec/company/{ticker}` | Ticker-to-CIK lookup via SEC EDGAR |
+| `GET` | `/sec/company/{ticker}/facts` | Available XBRL taxonomies and sample fact names |
+| `GET` | `/sec/company/{ticker}/financial-summary` | Latest annual values for key us-gaap concepts |
+| `POST` | `/sec/company/{ticker}/financial-evidence/{thesis_id}` | Import SEC financial facts as evidence rows (deduplication built-in) |
+| `POST` | `/demo/seed-amzn` | Create or reuse AMZN demo company and thesis |
+| `POST` | `/demo/run-amzn` | Run the full AMZN demo workflow end-to-end |
+
+---
+
+## Demo: Run the AMZN Thesis Drift Workflow
+
+This demo runs the full Falsify workflow — from company setup to SEC evidence import to drift verdict — in one command.
+
+### 1. Start the backend
+
+```bash
+cd apps/api
+uvicorn main:app --reload
+```
+
+API runs at `http://localhost:8000`. Swagger UI at `http://localhost:8000/docs`.
+
+### 2. Start the frontend
+
+```bash
+cd apps/web
+npm run dev
+```
+
+Dashboard runs at `http://localhost:3000`.
+
+### 3. Run the full AMZN demo
+
+```bash
+curl -X POST http://localhost:8000/demo/run-amzn
+```
+
+This single endpoint:
+
+1. **Creates or reuses** the AMZN demo company and thesis in Supabase
+2. **Fetches real SEC financial facts** for Amazon from the SEC EDGAR XBRL API
+3. **Stores them as structured evidence rows** — each fact becomes one evidence item linked to the thesis
+4. **Skips duplicates** — calling it again will not double-insert evidence
+5. **Generates a drift verdict** — analyzes all evidence by stance, counts SEC fact rows separately, and writes an explainable rationale
+
+Example response:
+
+```json
+{
+  "message": "AMZN demo run complete.",
+  "company": { "ticker": "AMZN", "name": "Amazon.com, Inc.", ... },
+  "thesis": { "thesis_text": "Amazon will continue strengthening because AWS...", ... },
+  "evidence_import": {
+    "created_evidence_count": 6,
+    "skipped_duplicate_count": 0
+  },
+  "verdict": {
+    "verdict": "needs_more_evidence",
+    "confidence": 0.0,
+    "rationale": "Analyzed 6 evidence row(s): 0 supporting, 0 contradicting, 6 neutral. 6 row(s) came from SEC financial facts. SEC financial evidence is treated as factual context..."
+  }
+}
+```
+
+### 4. View results in the dashboard
+
+Open `http://localhost:3000` and scroll through the workflow:
+
+- **Step 2** — the AMZN thesis appears in the Investment Theses panel with an "Import SEC Financial Evidence" button
+- **Step 3** — SEC financial fact rows appear in the Evidence Panel (revenues, net income, assets, etc.)
+- **Step 4** — the Drift Verdict panel shows the verdict, confidence, and sentence-by-sentence reasoning
+
+To move the verdict from `needs_more_evidence` to `supported` or `contradicted`, add manual evidence items tagged `supports` or `contradicts` in Step 3, then click **Generate Verdict** again.
 
 ---
 
