@@ -75,29 +75,55 @@ def _compute_verdict(evidence_rows: list[dict]) -> tuple[str, float, str]:
     total = len(evidence_rows)
     supports = sum(1 for e in evidence_rows if e.get("stance") == "supports")
     contradicts = sum(1 for e in evidence_rows if e.get("stance") == "contradicts")
+    neutral = sum(1 for e in evidence_rows if e.get("stance") == "neutral")
+    sec_facts = sum(
+        1 for e in evidence_rows if e.get("source_type") == "sec_financial_fact"
+    )
+
+    # Build the base summary line
+    summary = (
+        f"Analyzed {total} evidence row(s): "
+        f"{supports} supporting, {contradicts} contradicting, {neutral} neutral."
+    )
+
+    # Append SEC context note when SEC financial facts are present
+    sec_note = ""
+    if sec_facts > 0:
+        sec_note = (
+            f" {sec_facts} row(s) came from SEC financial facts. "
+            "SEC financial evidence is treated as factual context and does not "
+            "dominate the verdict unless classified as supporting or contradicting."
+        )
 
     if supports > contradicts:
+        verdict_detail = (
+            f" {supports} supporting item(s) outweigh {contradicts} contradicting item(s). "
+            "The thesis appears to be holding."
+        )
         return (
             "supported",
             supports / total,
-            f"{supports} of {total} evidence item(s) support the thesis, "
-            f"outweighing {contradicts} contradicting item(s). "
-            "The thesis appears to be holding.",
+            summary + sec_note + verdict_detail,
         )
 
     if contradicts > supports:
+        verdict_detail = (
+            f" {contradicts} contradicting item(s) outweigh {supports} supporting item(s). "
+            "The thesis shows signs of deterioration."
+        )
         return (
             "contradicted",
             contradicts / total,
-            f"{contradicts} of {total} evidence item(s) contradict the thesis, "
-            f"outweighing {supports} supporting item(s). "
-            "The thesis shows signs of deterioration.",
+            summary + sec_note + verdict_detail,
         )
 
     # supports == contradicts (and total > 0)
+    verdict_detail = (
+        f" Evidence is mixed — {supports} item(s) support and {contradicts} item(s) "
+        "contradict the thesis. More evidence is needed to reach a clear verdict."
+    )
     return (
         "weakening",
         0.5,
-        f"Evidence is mixed — {supports} item(s) support and {contradicts} item(s) "
-        "contradict the thesis. More evidence is needed to reach a clear verdict.",
+        summary + sec_note + verdict_detail,
     )
