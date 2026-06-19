@@ -3,9 +3,11 @@ import os
 import httpx
 from fastapi import APIRouter, HTTPException
 
+from db.supabase_client import get_supabase
 from schemas.sec import (
     SECCompanyFactsResponse,
     SECCompanyResponse,
+    SECFinancialEvidenceResponse,
     SECFinancialSummaryResponse,
 )
 
@@ -224,4 +226,98 @@ def get_sec_financial_summary(ticker: str) -> dict:
         "cik": company["cik"],
         "company_name": company["company_name"],
         "financial_facts": financial_facts,
+    }
+
+
+@router.post(
+    "/company/{ticker}/financial-evidence/{thesis_id}",
+    response_model=SECFinancialEvidenceResponse,
+    status_code=201,
+)
+def create_financial_evidence(ticker: str, thesis_id: str) -> dict:
+    """
+    Fetch SEC financial facts for a ticker and insert them as evidence rows
+    linked to the given thesis in Supabase.
+
+    Each financial fact becomes one evidence row with stance 'neutral'.
+    The thesis must already exist in the theses table.
+    """
+    db = get_supabase()
+
+    # Verify the thesis exists before doing any SEC work
+    try:
+        thesis_result = (
+            db.table("theses").select("id").eq("id", thesis_id).execute()
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not thesis_result.data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No thesis found with id '{thesis_id}'.",
+        )
+
+    # Fetch financial summary — reuses existing helpers and error handling
+    company = _lookup_cik(ticker)
+    facts = _fetch_company_facts(company["cik"], company["ticker"])
+    us_gaap: dict = facts.get("facts", {}).get("us-gaap", {})
+
+    financial_facts = []
+    for concept_name in _SUMMARY_CONCEPTS:
+        concept_data = us_gaap.get(concept_name)
+        if concept_data is None:
+            continue
+        latest = _latest_annual_value(concept_data)
+        if latest is None:
+            continue
+        financial_facts.append({
+            "fact_name": concept_name,
+            "label": concept_data.get("label", concept_name),
+            "latest": latest,
+        })
+
+    if not financial_facts:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No useful financial facts found for '{company['ticker']}'.",
+        )
+
+    sec_source_url = SEC_FACTS_URL.format(cik=company["cik"])
+
+    rows_to_insert = []
+    for fact in financial_facts:
+        label = fact["label"]
+        latest = fact["latest"]
+        fy = latest["fiscal_year"]
+        value = latest["value"]
+        form = latest["form"]
+        filed = latest["filed"]
+
+        source_title = f"{company['company_name']} {label} FY{fy}"
+        evidence_text = (
+            f"{company['company_name']} reported {label} of {value:,.0f} USD "
+            f"for FY{fy} in its {form} filed on {filed}."
+        )
+
+        rows_to_insert.append({
+            "thesis_id": thesis_id,
+            "company_ticker": company["ticker"],
+            "source_type": "sec_financial_fact",
+            "source_title": source_title,
+            "source_url": sec_source_url,
+            "evidence_text": evidence_text,
+            "stance": "neutral",
+        })
+
+    try:
+        insert_result = db.table("evidence").insert(rows_to_insert).execute()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return {
+        "ticker": company["ticker"],
+        "thesis_id": thesis_id,
+        "created_evidence_count": len(insert_result.data),
+        "created_evidence": insert_result.data,
     }

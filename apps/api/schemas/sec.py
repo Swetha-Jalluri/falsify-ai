@@ -32,3 +32,10 @@ class SECFinancialSummaryResponse(BaseModel):
     cik: str
     company_name: str
     financial_facts: list[FinancialFact]
+
+
+class SECFinancialEvidenceResponse(BaseModel):
+    ticker: str
+    thesis_id: str
+    created_evidence_count: int
+    created_evidence: list[dict]
