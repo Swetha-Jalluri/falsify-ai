@@ -235,6 +235,37 @@ Never commit real credentials. Both files are gitignored.
 
 ---
 
+## Testing and CI
+
+### Backend tests
+
+```bash
+cd apps/api
+pytest
+```
+
+Tests use FastAPI's `TestClient` and run entirely in-process — no Supabase connection or environment variables required.
+
+### Frontend build check
+
+```bash
+cd apps/web
+npm run build
+```
+
+Verifies the Next.js app compiles cleanly for production.
+
+### GitHub Actions
+
+A CI workflow (`.github/workflows/ci.yml`) runs automatically on every push and pull request to `main`:
+
+- **Backend** — installs Python dependencies and runs `pytest`
+- **Frontend** — installs Node dependencies and runs `npm run build`
+
+Both jobs run in parallel on `ubuntu-latest`.
+
+---
+
 ## Screenshots
 
 > Screenshots are not yet committed. Add the files listed below to `docs/screenshots/` manually, then these images will render on GitHub.
