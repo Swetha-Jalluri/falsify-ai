@@ -14,3 +14,21 @@ class SECCompanyFactsResponse(BaseModel):
     facts_available: bool
     available_taxonomies: list[str]
     sample_us_gaap_facts: list[str]
+
+
+class FinancialFact(BaseModel):
+    fact_name: str
+    label: str
+    unit: str
+    value: float
+    fiscal_year: int
+    fiscal_period: str
+    form: str
+    filed: str
+
+
+class SECFinancialSummaryResponse(BaseModel):
+    ticker: str
+    cik: str
+    company_name: str
+    financial_facts: list[FinancialFact]

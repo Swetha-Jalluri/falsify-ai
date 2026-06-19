@@ -3,7 +3,11 @@ import os
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from schemas.sec import SECCompanyFactsResponse, SECCompanyResponse
+from schemas.sec import (
+    SECCompanyFactsResponse,
+    SECCompanyResponse,
+    SECFinancialSummaryResponse,
+)
 
 router = APIRouter(prefix="/sec", tags=["sec"])
 
@@ -14,6 +18,19 @@ SEC_FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
 # Set SEC_USER_AGENT in your .env file, e.g.:
 #   SEC_USER_AGENT=YourName yourname@email.com
 _DEFAULT_USER_AGENT = "falsify-dev contact@example.com"
+
+# us-gaap concepts to extract for the financial summary.
+# Listed in priority order; the first available concept for each category is used.
+_SUMMARY_CONCEPTS = [
+    "Revenues",
+    "RevenueFromContractWithCustomerExcludingAssessedTax",
+    "NetIncomeLoss",
+    "OperatingIncomeLoss",
+    "Assets",
+    "Liabilities",
+    "CashAndCashEquivalentsAtCarryingValue",
+    "NetCashProvidedByUsedInOperatingActivities",
+]
 
 
 def _get_user_agent() -> str:
@@ -62,6 +79,78 @@ def _lookup_cik(ticker: str) -> dict:
     )
 
 
+def _fetch_company_facts(cik: str, ticker: str) -> dict:
+    """
+    Fetch the full SEC XBRL facts payload for a given CIK.
+
+    Returns the parsed JSON dict.
+    Raises HTTPException 404 if facts are missing, 502 if the request fails.
+    """
+    facts_url = SEC_FACTS_URL.format(cik=cik)
+
+    try:
+        response = httpx.get(
+            facts_url,
+            headers={"User-Agent": _get_user_agent()},
+            timeout=15.0,
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No SEC facts found for CIK '{cik}' ({ticker}).",
+            )
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch SEC company facts: {exc}",
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch SEC company facts: {exc}",
+        )
+
+    return response.json()
+
+
+def _latest_annual_value(concept_data: dict) -> dict | None:
+    """
+    Extract the latest annual 10-K value from a single us-gaap concept.
+
+    The SEC facts payload stores each concept as a dict with a 'units' key
+    containing lists of filings. We look for USD-denominated 10-K entries,
+    then fall back to any entry if no 10-K is available.
+
+    Returns a dict with value, fiscal_year, fiscal_period, form, and filed,
+    or None if no usable data is found.
+    """
+    units: dict = concept_data.get("units", {})
+
+    # Most financial facts are denominated in USD
+    entries: list[dict] = units.get("USD", [])
+    if not entries:
+        return None
+
+    # Prefer 10-K annual filings; fall back to the most recently filed entry
+    annual = [e for e in entries if e.get("form") == "10-K" and e.get("fp") == "FY"]
+    candidates = annual if annual else entries
+
+    # Pick the entry with the latest filed date
+    latest = max(candidates, key=lambda e: e.get("filed", ""), default=None)
+    if latest is None:
+        return None
+
+    return {
+        "value": latest["val"],
+        "fiscal_year": latest.get("fy", 0),
+        "fiscal_period": latest.get("fp", ""),
+        "form": latest.get("form", ""),
+        "filed": latest.get("filed", ""),
+    }
+
+
 @router.get("/company/{ticker}", response_model=SECCompanyResponse)
 def get_sec_company(ticker: str) -> dict:
     """Look up a company's SEC CIK number and name by ticker symbol."""
@@ -77,46 +166,62 @@ def get_sec_company_facts(ticker: str) -> dict:
     summary — available taxonomies and up to 20 sample us-gaap concept names.
     """
     company = _lookup_cik(ticker)
-
-    facts_url = SEC_FACTS_URL.format(cik=company["cik"])
-
-    try:
-        response = httpx.get(
-            facts_url,
-            headers={"User-Agent": _get_user_agent()},
-            timeout=15.0,
-            follow_redirects=True,
-        )
-        response.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 404:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No SEC facts found for CIK '{company['cik']}' ({company['ticker']}).",
-            )
-        raise HTTPException(
-            status_code=502,
-            detail=f"Failed to fetch SEC company facts: {exc}",
-        )
-    except httpx.HTTPError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Failed to fetch SEC company facts: {exc}",
-        )
-
-    facts: dict = response.json()
+    facts = _fetch_company_facts(company["cik"], company["ticker"])
     facts_data: dict = facts.get("facts", {})
-
-    available_taxonomies = list(facts_data.keys())
-
-    # Return up to 20 us-gaap concept names as a sample
-    us_gaap_facts: list[str] = list(facts_data.get("us-gaap", {}).keys())[:20]
 
     return {
         "ticker": company["ticker"],
         "cik": company["cik"],
         "company_name": company["company_name"],
         "facts_available": bool(facts_data),
-        "available_taxonomies": available_taxonomies,
-        "sample_us_gaap_facts": us_gaap_facts,
+        "available_taxonomies": list(facts_data.keys()),
+        "sample_us_gaap_facts": list(facts_data.get("us-gaap", {}).keys())[:20],
+    }
+
+
+@router.get("/company/{ticker}/financial-summary", response_model=SECFinancialSummaryResponse)
+def get_sec_financial_summary(ticker: str) -> dict:
+    """
+    Return a small set of key financial facts for a given ticker.
+
+    Extracts the latest annual 10-K value for each concept in _SUMMARY_CONCEPTS.
+    Falls back to the most recently filed value if no 10-K entry is available.
+    """
+    company = _lookup_cik(ticker)
+    facts = _fetch_company_facts(company["cik"], company["ticker"])
+    us_gaap: dict = facts.get("facts", {}).get("us-gaap", {})
+
+    financial_facts = []
+
+    for concept_name in _SUMMARY_CONCEPTS:
+        concept_data = us_gaap.get(concept_name)
+        if concept_data is None:
+            continue
+
+        latest = _latest_annual_value(concept_data)
+        if latest is None:
+            continue
+
+        financial_facts.append({
+            "fact_name": concept_name,
+            "label": concept_data.get("label", concept_name),
+            "unit": "USD",
+            "value": latest["value"],
+            "fiscal_year": latest["fiscal_year"],
+            "fiscal_period": latest["fiscal_period"],
+            "form": latest["form"],
+            "filed": latest["filed"],
+        })
+
+    if not financial_facts:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No useful financial facts found for '{company['ticker']}'.",
+        )
+
+    return {
+        "ticker": company["ticker"],
+        "cik": company["cik"],
+        "company_name": company["company_name"],
+        "financial_facts": financial_facts,
     }
