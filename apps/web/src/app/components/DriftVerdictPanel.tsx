@@ -39,6 +39,39 @@ function formatDate(iso: string) {
   });
 }
 
+// Splits a rationale string into readable sentences for display.
+// Sentences are split on ". " so each thought gets its own line.
+function RationaleLines({ text, dim = false }: { text: string; dim?: boolean }) {
+  const sentences = text
+    .split(/\.\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => (s.endsWith(".") ? s : `${s}.`));
+
+  if (sentences.length <= 1) {
+    return (
+      <p className={`text-xs leading-relaxed ${dim ? "text-slate-500" : "text-slate-400"}`}>
+        {text}
+      </p>
+    );
+  }
+
+  return (
+    <ul className="flex flex-col gap-1">
+      {sentences.map((sentence, i) => (
+        <li key={i} className="flex items-start gap-2">
+          <span className={`mt-1 shrink-0 text-[10px] ${dim ? "text-slate-600" : "text-slate-600"}`}>
+            ›
+          </span>
+          <span className={`text-xs leading-relaxed ${dim ? "text-slate-500" : "text-slate-400"}`}>
+            {sentence}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function DriftVerdictPanel() {
   const [verdicts, setVerdicts] = useState<DriftVerdict[]>([]);
   const [form, setForm] = useState<DriftVerdictRequest>(EMPTY);
@@ -172,9 +205,12 @@ export default function DriftVerdictPanel() {
                 {(lastGenerated.confidence * 100).toFixed(0)}% confidence
               </span>
             </div>
-            <p className="mt-1.5 text-xs text-slate-400">
-              {lastGenerated.rationale}
-            </p>
+            <div className="mt-2.5">
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-widest text-slate-600">
+                Reasoning
+              </p>
+              <RationaleLines text={lastGenerated.rationale} />
+            </div>
           </div>
         )}
       </div>
@@ -314,10 +350,13 @@ export default function DriftVerdictPanel() {
                 )}
               </div>
 
-              {/* Rationale */}
-              <p className="text-sm leading-relaxed text-slate-400">
-                {v.rationale}
-              </p>
+              {/* Reasoning */}
+              <div className="mt-2">
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-widest text-slate-600">
+                  Reasoning
+                </p>
+                <RationaleLines text={v.rationale} />
+              </div>
             </li>
           ))}
         </ul>
