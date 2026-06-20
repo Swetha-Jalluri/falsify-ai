@@ -55,3 +55,17 @@ class SECFilingsResponse(BaseModel):
     ticker: str
     cik: str
     filings: list[SECFiling] = Field(default_factory=list)
+
+
+class SECFilingDocumentResponse(BaseModel):
+    ticker: str
+    cik: str
+    form: str
+    accession_number: str
+    filing_date: str
+    report_date: str | None
+    primary_document: str
+    document_url: str
+    content_type: str
+    text_preview: str
+    text_length: int

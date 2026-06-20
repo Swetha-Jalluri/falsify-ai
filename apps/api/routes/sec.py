@@ -7,6 +7,7 @@ from db.supabase_client import get_supabase
 from schemas.sec import (
     SECCompanyFactsResponse,
     SECCompanyResponse,
+    SECFilingDocumentResponse,
     SECFilingsResponse,
     SECFinancialEvidenceResponse,
     SECFinancialSummaryResponse,
@@ -456,4 +457,89 @@ def get_sec_filings(
         "ticker": company["ticker"],
         "cik": company["cik"],
         "filings": filings,
+    }
+
+
+_TEXT_PREVIEW_LIMIT = 5000
+
+
+@router.get(
+    "/company/{ticker}/filings/{accession_number}/document",
+    response_model=SECFilingDocumentResponse,
+)
+def get_sec_filing_document(ticker: str, accession_number: str) -> dict:
+    """
+    Fetch the primary document for a specific SEC filing.
+
+    Returns filing metadata plus the first 5000 characters of the document
+    text as a preview. The full document is not returned because SEC filings
+    can be very large.
+    """
+    company = _lookup_cik(ticker)
+    submissions = _fetch_submissions(company["cik"], company["ticker"])
+
+    recent = submissions.get("filings", {}).get("recent", {})
+    accession_numbers = recent.get("accessionNumber", [])
+
+    # Normalise the accession number for comparison (dashes are optional in URLs)
+    accession_normalised = accession_number.replace("-", "")
+
+    # Find the index of the matching filing
+    match_index = None
+    for i, acc in enumerate(accession_numbers):
+        if acc.replace("-", "") == accession_normalised:
+            match_index = i
+            break
+
+    if match_index is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Accession number '{accession_number}' not found for {company['ticker']}.",
+        )
+
+    form = recent["form"][match_index]
+    filed = recent["filingDate"][match_index]
+    reported = recent["reportDate"][match_index] or None
+    primary_doc = recent["primaryDocument"][match_index]
+    cik_int = str(int(company["cik"]))
+    document_url = (
+        f"https://www.sec.gov/Archives/edgar/data/"
+        f"{cik_int}/{accession_normalised}/{primary_doc}"
+    )
+
+    # Fetch the actual document
+    try:
+        doc_response = httpx.get(
+            document_url,
+            headers={"User-Agent": _get_user_agent()},
+            timeout=20.0,
+            follow_redirects=True,
+        )
+        doc_response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch filing document from SEC: {exc}",
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch filing document from SEC: {exc}",
+        )
+
+    content_type = doc_response.headers.get("content-type", "unknown")
+    raw_text = doc_response.text
+
+    return {
+        "ticker": company["ticker"],
+        "cik": company["cik"],
+        "form": form,
+        "accession_number": recent["accessionNumber"][match_index],
+        "filing_date": filed,
+        "report_date": reported,
+        "primary_document": primary_doc,
+        "document_url": document_url,
+        "content_type": content_type,
+        "text_preview": raw_text[:_TEXT_PREVIEW_LIMIT],
+        "text_length": len(raw_text),
     }
