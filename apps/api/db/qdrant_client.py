@@ -4,6 +4,7 @@ from qdrant_client import QdrantClient
 
 # Read from environment; default to local Docker Compose instance.
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "falsify_chunks")
 
 
 def get_qdrant() -> QdrantClient:
