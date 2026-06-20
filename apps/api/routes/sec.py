@@ -7,6 +7,7 @@ from db.supabase_client import get_supabase
 from schemas.sec import (
     SECCompanyFactsResponse,
     SECCompanyResponse,
+    SECFilingsResponse,
     SECFinancialEvidenceResponse,
     SECFinancialSummaryResponse,
 )
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/sec", tags=["sec"])
 
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SEC_FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 
 # SEC requires a descriptive User-Agent for all API requests.
 # Set SEC_USER_AGENT in your .env file, e.g.:
@@ -360,4 +362,98 @@ def create_financial_evidence(ticker: str, thesis_id: str) -> dict:
         "created_evidence_count": len(insert_result.data),
         "skipped_duplicate_count": skipped,
         "created_evidence": insert_result.data,
+    }
+
+
+def _fetch_submissions(cik: str, ticker: str) -> dict:
+    """
+    Fetch the SEC submissions JSON for a given CIK.
+
+    Returns the full parsed payload.
+    Raises HTTPException 404 if not found, 502 if the request fails.
+    """
+    url = SEC_SUBMISSIONS_URL.format(cik=cik)
+    try:
+        response = httpx.get(
+            url,
+            headers={"User-Agent": _get_user_agent()},
+            timeout=15.0,
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No SEC submissions found for CIK '{cik}' ({ticker}).",
+            )
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch SEC submissions: {exc}",
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch SEC submissions: {exc}",
+        )
+    return response.json()
+
+
+@router.get("/company/{ticker}/filings", response_model=SECFilingsResponse)
+def get_sec_filings(
+    ticker: str,
+    form_type: str | None = None,
+    limit: int = 10,
+) -> dict:
+    """
+    Return recent SEC filing metadata for a given ticker.
+
+    Optionally filter by form type (e.g. 10-K, 10-Q). Limit defaults to 10,
+    maximum 50. Each filing includes a direct link to the primary document on
+    SEC EDGAR.
+    """
+    limit = min(limit, 50)
+
+    company = _lookup_cik(ticker)
+    submissions = _fetch_submissions(company["cik"], company["ticker"])
+
+    recent = submissions.get("filings", {}).get("recent", {})
+    forms = recent.get("form", [])
+    accession_numbers = recent.get("accessionNumber", [])
+    filing_dates = recent.get("filingDate", [])
+    report_dates = recent.get("reportDate", [])
+    primary_documents = recent.get("primaryDocument", [])
+
+    # cik without leading zeros is used in the EDGAR Archives URL
+    cik_int = str(int(company["cik"]))
+
+    filings = []
+    for form, accession, filed, reported, primary_doc in zip(
+        forms, accession_numbers, filing_dates, report_dates, primary_documents
+    ):
+        if form_type and form.upper() != form_type.upper():
+            continue
+
+        accession_clean = accession.replace("-", "")
+        document_url = (
+            f"https://www.sec.gov/Archives/edgar/data/"
+            f"{cik_int}/{accession_clean}/{primary_doc}"
+        )
+
+        filings.append({
+            "form": form,
+            "accession_number": accession,
+            "filing_date": filed,
+            "report_date": reported or None,
+            "primary_document": primary_doc,
+            "document_url": document_url,
+        })
+
+        if len(filings) >= limit:
+            break
+
+    return {
+        "ticker": company["ticker"],
+        "cik": company["cik"],
+        "filings": filings,
     }

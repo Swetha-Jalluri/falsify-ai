@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SECCompanyResponse(BaseModel):
@@ -40,3 +40,18 @@ class SECFinancialEvidenceResponse(BaseModel):
     created_evidence_count: int
     skipped_duplicate_count: int
     created_evidence: list[dict]
+
+
+class SECFiling(BaseModel):
+    form: str
+    accession_number: str
+    filing_date: str
+    report_date: str | None
+    primary_document: str
+    document_url: str
+
+
+class SECFilingsResponse(BaseModel):
+    ticker: str
+    cik: str
+    filings: list[SECFiling] = Field(default_factory=list)
