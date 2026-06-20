@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes.analyzer import router as analyzer_router
+from routes.qdrant import router as qdrant_router
 from routes.companies import router as companies_router
 from routes.demo import router as demo_router
 from routes.drift_verdicts import router as drift_verdicts_router
@@ -27,6 +28,7 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(qdrant_router)
 app.include_router(companies_router)
 app.include_router(theses_router)
 app.include_router(evidence_router)
